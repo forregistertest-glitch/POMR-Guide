@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vet HIS Implementation Guide: Complete Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Sarabun', sans-serif; background-color: #f0f2f5; color: #1f2937; }
+        h1, h2, h3, h4 { color: #111827; }
+        code { font-family: 'Fira Code', monospace; color: #d946ef; background: #fdf4ff; padding: 2px 5px; border-radius: 4px; font-size: 0.9em; border: 1px solid #f0abfc; }
+        pre { background-color: #1e293b; color: #e2e8f0; padding: 1.5rem; border-radius: 0.75rem; overflow-x: auto; font-family: 'Fira Code', monospace; font-size: 0.85rem; line-height: 1.5; }
+        
+        /* Sidebar Styling */
+        .sidebar-link { display: flex; align-items: center; padding: 10px 15px; color: #4b5563; transition: all 0.2s; border-radius: 6px; margin-bottom: 4px; }
+        .sidebar-link:hover { background-color: #eff6ff; color: #2563eb; }
+        .sidebar-link.active { background-color: #dbeafe; color: #1d4ed8; font-weight: 600; }
+        .sidebar-link i { width: 24px; }
+
+        /* Table Styling */
+        table { border-collapse: separate; border-spacing: 0; width: 100%; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; }
+        th { background-color: #f9fafb; color: #374151; font-weight: 600; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; padding: 12px 16px; border-bottom: 1px solid #e5e7eb; }
+        td { padding: 12px 16px; border-bottom: 1px solid #e5e7eb; vertical-align: top; }
+        tr:last-child td { border-bottom: none; }
+        tr:hover { background-color: #f9fafb; }
+
+        /* Wireframe Box */
+        .wireframe-box { font-family: 'Courier New', monospace; white-space: pre; background: #ffffff; border: 2px solid #000; padding: 20px; color: #000; line-height: 1.2; overflow-x: auto; box-shadow: 4px 4px 0px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden">
+
+    <aside class="w-72 bg-white border-r border-gray-200 hidden md:flex flex-col overflow-y-auto z-10 shadow-sm">
+        <div class="p-6 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-white">
+            <h1 class="text-xl font-bold text-blue-800"><i class="fa-solid fa-book-medical mr-2"></i>POMR (Problem-Oriented Medical Record) Guide</h1>
+            <p class="text-xs text-gray-500 mt-1">Version 1.0 (Full Spec)</p>
+        </div>
+        <nav class="flex-1 p-4">
+            <div class="text-xs font-bold text-gray-400 uppercase mb-2 px-3">Overview</div>
+            <a href="#intro" class="sidebar-link"><i class="fa-solid fa-layer-group"></i> 1. มาตรฐาน (Standards)</a>
+            <a href="#fields" class="sidebar-link"><i class="fa-solid fa-table-list"></i> 2. รูปแบบข้อมูล (Fields)</a>
+            
+            <div class="text-xs font-bold text-gray-400 uppercase mb-2 px-3 mt-4">Logic & Codes</div>
+            <a href="#status" class="sidebar-link"><i class="fa-solid fa-tags"></i> 3. สถานะ (Status Codes)</a>
+            <a href="#lifecycle" class="sidebar-link"><i class="fa-solid fa-rotate"></i> 4. วงจรชีวิต (Lifecycle)</a>
+            
+            <div class="text-xs font-bold text-gray-400 uppercase mb-2 px-3 mt-4">UI & UX Design</div>
+            <a href="#uiconcept" class="sidebar-link"><i class="fa-solid fa-desktop"></i> 5. แนวคิด Smart Dashboard</a>
+            <a href="#wireframe" class="sidebar-link"><i class="fa-solid fa-font"></i> 6. Text-based Wireframe</a>
+            
+            <div class="text-xs font-bold text-gray-400 uppercase mb-2 px-3 mt-4">Database</div>
+            <a href="#db-design" class="sidebar-link"><i class="fa-solid fa-database"></i> 7. Database Schema</a>
+        </nav>
+    </aside>
+
+    <main class="flex-1 overflow-y-auto scroll-smooth p-4 md:p-10">
+        
+        <div class="max-w-5xl mx-auto space-y-16">
+
+            <section id="intro">
+                <div class="border-b border-gray-200 pb-4 mb-6">
+                    <span class="text-blue-600 font-bold text-sm tracking-wide uppercase">Introduction</span>
+                    <h2 class="text-3xl font-bold mt-1">1. มาตรฐานและหลักการ (The Ecosystem)</h2>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
+                        <div class="w-10 h-10 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-3"><i class="fa-solid fa-cube"></i></div>
+                        <h3 class="font-bold text-gray-800">HL7 (FHIR)</h3>
+                        <p class="text-sm text-gray-600 mt-2">คือ <strong>"ภาชนะ" (Container)</strong> กำหนดโครงสร้างข้อมูลว่าต้องมีช่องอะไรบ้าง (เช่น Resource: Condition)</p>
+                    </div>
+                    <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
+                        <div class="w-10 h-10 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center mb-3"><i class="fa-solid fa-language"></i></div>
+                        <h3 class="font-bold text-gray-800">SNOMED CT</h3>
+                        <p class="text-sm text-gray-600 mt-2">คือ <strong>"ภาษา" (Content)</strong> รหัสมาตรฐานความละเอียดสูง ใช้ระบุชื่อโรคและอาการ (Vet Extension)</p>
+                    </div>
+                    <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
+                        <div class="w-10 h-10 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-3"><i class="fa-solid fa-list-check"></i></div>
+                        <h3 class="font-bold text-gray-800">AAHA</h3>
+                        <p class="text-sm text-gray-600 mt-2">คือ <strong>"กระบวนการ" (Workflow)</strong> กำหนดวิธีบันทึกแบบ POMR (Problem-Oriented Medical Record)</p>
+                    </div>
+                    <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
+                        <div class="w-10 h-10 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center mb-3"><i class="fa-solid fa-file-invoice-dollar"></i></div>
+                        <h3 class="font-bold text-gray-800">ICD-10</h3>
+                        <p class="text-sm text-gray-600 mt-2">คือ <strong>"การจัดกลุ่ม" (Billing)</strong> ใช้สำหรับการเบิกจ่ายประกันภัย หรือรายงานสถิติภาครัฐ</p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="fields">
+                <div class="border-b border-gray-200 pb-4 mb-6">
+                    <span class="text-blue-600 font-bold text-sm tracking-wide uppercase">Data Structure</span>
+                    <h2 class="text-3xl font-bold mt-1">2. รูปแบบการลงข้อมูล (Fields Definition)</h2>
+                    <p class="text-gray-600 mt-2">โครงสร้างข้อมูลตามโมเดล HL7 FHIR (Resource: <code>Condition</code>)</p>
+                </div>
+
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th class="w-1/4">ชื่อฟิลด์ (Field)</th>
+                                <th class="w-1/4">มาตรฐานที่ใช้ (Standard)</th>
+                                <th class="w-1/2">คำอธิบายและการใช้งาน (Usage)</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-sm">
+                            <tr>
+                                <td class="font-bold text-blue-700">Condition Code</td>
+                                <td><span class="bg-purple-100 text-purple-700 px-2 py-0.5 rounded text-xs border border-purple-200">SNOMED CT</span></td>
+                                <td>รหัสโรคหรืออาการ เช่น <code>111867009 | Vomiting</code></td>
+                            </tr>
+                            <tr>
+                                <td class="font-bold text-blue-700">Category</td>
+                                <td><span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs border border-blue-200">HL7 Codes</span></td>
+                                <td>แยกประเภทว่าเป็น <code>problem-list-item</code> (อาการ/ปัญหา) หรือ <code>encounter-diagnosis</code> (โรคหลัก)</td>
+                            </tr>
+                            <tr>
+                                <td class="font-bold text-blue-700">Clinical Status</td>
+                                <td><span class="bg-gray-100 text-gray-700 px-2 py-0.5 rounded text-xs border border-gray-200">HL7 ValueSet</span></td>
+                                <td>สถานะความเป็นไปของโรค (เป็นอยู่, หายแล้ว, หรือเป็นซ้ำ) <a href="#status" class="text-blue-500 hover:underline">ดูรายละเอียด</a></td>
+                            </tr>
+                            <tr>
+                                <td class="font-bold text-blue-700">Verification Status</td>
+                                <td><span class="bg-gray-100 text-gray-700 px-2 py-0.5 rounded text-xs border border-gray-200">HL7 ValueSet</span></td>
+                                <td>ระดับความมั่นใจ (สงสัย, แยกโรค, หรือยืนยันแล้ว) <a href="#status" class="text-blue-500 hover:underline">ดูรายละเอียด</a></td>
+                            </tr>
+                            <tr>
+                                <td class="font-bold text-blue-700">Onset Date</td>
+                                <td>Date/Time</td>
+                                <td>วันที่เริ่มแสดงอาการ หรือวันที่เจ้าของสังเกตเห็น</td>
+                            </tr>
+                            <tr>
+                                <td class="font-bold text-blue-700">Abatement Date</td>
+                                <td>Date/Time</td>
+                                <td>วันที่โรคหาย หรือสิ้นสุดการรักษา (ใช้คู่กับสถานะ Resolved)</td>
+                            </tr>
+                            <tr>
+                                <td class="font-bold text-blue-700">Severity</td>
+                                <td><span class="bg-purple-100 text-purple-700 px-2 py-0.5 rounded text-xs border border-purple-200">SNOMED CT</span></td>
+                                <td>ความรุนแรง (Mild, Moderate, Severe)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section id="status">
+                <div class="border-b border-gray-200 pb-4 mb-6">
+                    <span class="text-blue-600 font-bold text-sm tracking-wide uppercase">Value Sets</span>
+                    <h2 class="text-3xl font-bold mt-1">3. ตารางสถานะ (Status Codes)</h2>
+                    <p class="text-gray-600 mt-2">รายละเอียดของสถานะ Clinical และ Verification ทั้งหมด</p>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div>
+                        <h3 class="font-bold text-lg mb-3 flex items-center text-red-600 border-b pb-2 border-red-100">
+                            <i class="fa-solid fa-heart-pulse mr-2"></i> Clinical Status (โรคยังอยู่ไหม?)
+                        </h3>
+                        <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+                            <table class="text-sm">
+                                <thead><tr><th>Code</th><th>ความหมาย</th></tr></thead>
+                                <tbody>
+                                    <tr><td class="font-mono font-bold text-red-600">active</td><td>โรคยังอยู่ / ต้องรักษาต่อเนื่อง</td></tr>
+                                    <tr><td class="font-mono font-bold text-orange-500">recurrence</td><td>เคยหายแล้ว กลับมาเป็นซ้ำ</td></tr>
+                                    <tr><td class="font-mono font-bold text-blue-500">relapse</td><td>กำเริบ (อาการแย่ลงหลังดูเหมือนดีขึ้น)</td></tr>
+                                    <tr><td class="font-mono font-bold text-gray-500">inactive</td><td>โรคยังอยู่แต่สงบ ไม่ต้องดูแลเร่งด่วน</td></tr>
+                                    <tr><td class="font-mono font-bold text-purple-500">remission</td><td>โรคสงบ (มักใช้กับมะเร็ง)</td></tr>
+                                    <tr><td class="font-mono font-bold text-green-600">resolved</td><td>หายขาดแล้ว / สิ้นสุดการวินิจฉัย</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h3 class="font-bold text-lg mb-3 flex items-center text-indigo-600 border-b pb-2 border-indigo-100">
+                            <i class="fa-solid fa-clipboard-check mr-2"></i> Verification Status (มั่นใจแค่ไหน?)
+                        </h3>
+                        <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+                            <table class="text-sm">
+                                <thead><tr><th>Code</th><th>ความหมาย</th></tr></thead>
+                                <tbody>
+                                    <tr><td class="font-mono font-bold text-yellow-600">provisional</td><td>วินิจฉัยเบื้องต้น / สงสัย (Working Dx)</td></tr>
+                                    <tr><td class="font-mono font-bold text-orange-600">differential</td><td>วินิจฉัยแยกโรค (หนึ่งใน Choice ที่เป็นไปได้)</td></tr>
+                                    <tr><td class="font-mono font-bold text-indigo-600">confirmed</td><td>ยืนยันแล้ว (มีผล Lab/หลักฐานชัดเจน)</td></tr>
+                                    <tr><td class="font-mono font-bold text-gray-400 line-through">refuted</td><td>พิสูจน์แล้วว่า <strong>ไม่ใช่</strong> โรคนี้ (Rule out)</td></tr>
+                                    <tr><td class="font-mono font-bold text-red-400">entered-in-error</td><td>ลงข้อมูลผิด (Human error)</td></tr>
+                                    <tr><td class="font-mono font-bold text-gray-500">unconfirmed</td><td>ไม่ยืนยัน (กว้างๆ / รับแจ้งจากเจ้าของ)</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="lifecycle">
+                 <div class="border-b border-gray-200 pb-4 mb-6">
+                    <span class="text-blue-600 font-bold text-sm tracking-wide uppercase">Workflow</span>
+                    <h2 class="text-3xl font-bold mt-1">4. วงจรชีวิตของปัญหา (Problem Lifecycle)</h2>
+                </div>
+                
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                    <div class="flex flex-col md:flex-row justify-between items-center text-center gap-4">
+                        
+                        <div class="flex-1 border p-4 rounded-lg bg-yellow-50 border-yellow-200">
+                            <div class="text-xs uppercase text-gray-500 mb-1">Stage 1: Day 1</div>
+                            <h4 class="font-bold text-gray-800">Symptom / Problem</h4>
+                            <div class="text-sm text-gray-600">"Vomiting"</div>
+                            <div class="mt-2 text-xs font-mono">
+                                <span class="bg-white border px-1 rounded">active</span>
+                                <span class="bg-white border px-1 rounded">provisional</span>
+                            </div>
+                        </div>
+
+                        <i class="fa-solid fa-arrow-right text-gray-400"></i>
+
+                        <div class="flex-1 border p-4 rounded-lg bg-blue-50 border-blue-200">
+                            <div class="text-xs uppercase text-gray-500 mb-1">Stage 2: Diagnosis (Evolve)</div>
+                            <h4 class="font-bold text-blue-800">Diagnosis</h4>
+                            <div class="text-sm text-gray-600">"Parvovirus Infection"</div>
+                            <div class="mt-2 text-xs font-mono">
+                                <span class="bg-white border px-1 rounded">active</span>
+                                <span class="bg-white border px-1 rounded">confirmed</span>
+                            </div>
+                        </div>
+
+                        <i class="fa-solid fa-arrow-right text-gray-400"></i>
+
+                         <div class="flex-1 border p-4 rounded-lg bg-green-50 border-green-200">
+                            <div class="text-xs uppercase text-gray-500 mb-1">Stage 3: Follow-up</div>
+                            <h4 class="font-bold text-green-800">Resolution</h4>
+                            <div class="text-sm text-gray-600">"Parvovirus Infection"</div>
+                            <div class="mt-2 text-xs font-mono">
+                                <span class="bg-white border px-1 rounded">resolved</span>
+                                <span class="bg-white border px-1 rounded">confirmed</span>
+                            </div>
+                        </div>
+
+                    </div>
+                    <div class="mt-4 text-center text-sm text-gray-500 bg-gray-50 p-2 rounded">
+                        <strong>Concept:</strong> ข้อมูลควรวิวัฒนาการ (Evolve) จากอาการไปสู่โรค โดยยังเก็บประวัติ Timeline ไว้
+                    </div>
+                </div>
+            </section>
+
+            <section id="uiconcept">
+                <div class="border-b border-gray-200 pb-4 mb-6">
+                    <span class="text-blue-600 font-bold text-sm tracking-wide uppercase">Frontend Design</span>
+                    <h2 class="text-3xl font-bold mt-1">5. แนวคิดการออกแบบ "Smart Dashboard"</h2>
+                    <p class="text-gray-600 mt-2">แบ่งองค์ประกอบหลักเป็น 3 ส่วน เพื่อความรวดเร็วและถูกต้อง</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm relative overflow-hidden">
+                        <div class="absolute top-0 right-0 bg-blue-500 text-white px-3 py-1 rounded-bl-lg text-sm font-bold">ส่วนที่ 1</div>
+                        <h3 class="font-bold text-lg mb-2 mt-2">The Master View</h3>
+                        <p class="text-sm text-gray-600">หน้าจอภาพรวม แสดงผลอยู่ส่วนบนสุดหรือด้านซ้ายเสมอ</p>
+                        <ul class="text-sm text-gray-600 list-disc list-inside mt-3 space-y-1">
+                            <li>แยก <strong>Active</strong> (กำลังรักษา) vs <strong>History</strong> (อดีต)</li>
+                            <li>ใช้ <strong>Color Badges</strong> ตาม HL7 Status</li>
+                            <li>แสดง Chronology (ระยะเวลาที่เป็น)</li>
+                        </ul>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm relative overflow-hidden">
+                        <div class="absolute top-0 right-0 bg-blue-500 text-white px-3 py-1 rounded-bl-lg text-sm font-bold">ส่วนที่ 2</div>
+                        <h3 class="font-bold text-lg mb-2 mt-2">Smart Entry & Search</h3>
+                        <p class="text-sm text-gray-600">ระบบค้นหาอัจฉริยะแบบ Unified Search</p>
+                        <ul class="text-sm text-gray-600 list-disc list-inside mt-3 space-y-1">
+                            <li><strong>Predictive Search:</strong> เชื่อมต่อ SNOMED API</li>
+                            <li><strong>Auto-Suggestion:</strong> เรียงตามโรคที่พบบ่อย</li>
+                            <li><strong>Quick Add Popup:</strong> ใส่รายละเอียดโดยไม่ต้องเปลี่ยนหน้า</li>
+                        </ul>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm relative overflow-hidden">
+                         <div class="absolute top-0 right-0 bg-blue-500 text-white px-3 py-1 rounded-bl-lg text-sm font-bold">ส่วนที่ 3</div>
+                        <h3 class="font-bold text-lg mb-2 mt-2">Lifecycle Management</h3>
+                        <p class="text-sm text-gray-600">เครื่องมือจัดการสถานะและจบงาน</p>
+                        <ul class="text-sm text-gray-600 list-disc list-inside mt-3 space-y-1">
+                            <li><strong>Hover Actions:</strong> ปุ่มด่วนเมื่อชี้เมาส์ (Resolve, Edit)</li>
+                            <li><strong>Evolve Button:</strong> เปลี่ยนอาการเป็นโรค</li>
+                            <li><strong>Grouping:</strong> ลากวางเพื่อจับคู่อาการเข้าสู่โรค</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <section id="wireframe">
+                 <div class="border-b border-gray-200 pb-4 mb-6">
+                    <span class="text-blue-600 font-bold text-sm tracking-wide uppercase">Mockup</span>
+                    <h2 class="text-3xl font-bold mt-1">6. Text-based Wireframe</h2>
+                    <p class="text-gray-600 mt-2">แบบจำลองหน้าจอการใช้งานจริง</p>
+                </div>
+                
+                <div class="wireframe-box text-xs md:text-sm">
++-----------------------------------------------------------------------------------+
+|  🐶 CHAOGUAY (Dog) - 5 Years old                                [ HISTORY/TIMELINE ] |
++-----------------------------------------------------------------------------------+
+|  🔍 [ Type to search Problem/Diagnosis (SNOMED)...          ]  <-- Smart Search   |
++-----------------------------------------------------------------------------------+
+|                                                                                   |
+|  [ GROUP: ACTIVE PROBLEMS (2) ] --------------------------------------------------|
+|                                                                                   |
+|  1. Chronic Kidney Disease (Stage 2)                      [ EDIT ] [ RESOLVE ]    |
+|     🔴 Active | 🔵 Confirmed | 📅 Since: 25 Oct 2023                              |
+|     Note: Creatinine 2.4 mg/dL                                                    |
+|     └── Related: Vomiting (Active)                                                |
+|                                                                                   |
+|  2. Corneal Ulcer                                         [ EVOLVE ] [ -> ]       |
+|     🔴 Active | 🟡 Provisional (Wait for stain test)                              |
+|                                                                                   |
+|  -------------------------------------------------------------------------------- |
+|                                                                                   |
+|  [ GROUP: HISTORY / INACTIVE ] ---------------------------------------------------|
+|  (Click to expand)                                                                |
+|                                                                                   |
+|  3. Tick infestation                                      [ VIEW ]                |
+|     ⚪ Resolved | 📅 12 Jan 2022 - 15 Jan 2022                                    |
+|                                                                                   |
++-----------------------------------------------------------------------------------+
+                </div>
+                <p class="text-sm text-gray-500 mt-4 italic">* Wireframe นี้แสดงการจัดกลุ่ม Active (บน) และ History (ล่าง) พร้อมปุ่ม Action ที่จำเป็น</p>
+            </section>
+
+            <section id="db-design">
+                 <div class="border-b border-gray-200 pb-4 mb-6">
+                    <span class="text-blue-600 font-bold text-sm tracking-wide uppercase">Backend</span>
+                    <h2 class="text-3xl font-bold mt-1">7. Database Schema & Relationships</h2>
+                    <p class="text-gray-600 mt-2">โมเดล <strong>"Single Table with Self-Reference"</strong> เพื่อรองรับ Parent-Child (Grouping)</p>
+                </div>
+
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-6">
+                     <div class="bg-gray-50 px-4 py-2 border-b border-gray-200 font-bold text-gray-700">Table: conditions</div>
+                     <table class="text-sm">
+                        <thead>
+                            <tr>
+                                <th class="w-1/6">Column</th>
+                                <th class="w-1/6">Type</th>
+                                <th class="w-2/3">Description / Logic</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="font-mono text-blue-700 font-bold">id</td>
+                                <td>PK</td>
+                                <td>Primary Key</td>
+                            </tr>
+                            <tr>
+                                <td class="font-mono text-blue-700 font-bold">patient_id</td>
+                                <td>FK</td>
+                                <td>อ้างอิงสัตว์ป่วย</td>
+                            </tr>
+                             <tr>
+                                <td class="font-mono text-red-600 font-bold">parent_condition_id</td>
+                                <td>FK (Self)</td>
+                                <td><i class="fa-solid fa-star text-yellow-400 mr-1"></i><strong>Key Logic:</strong> เก็บ ID ของ Diagnosis แม่ (ถ้ามี) เพื่อสร้าง Tree View</td>
+                            </tr>
+                            <tr>
+                                <td class="font-mono text-blue-700 font-bold">category</td>
+                                <td>Enum</td>
+                                <td><code>problem-list-item</code> (ลูก) หรือ <code>encounter-diagnosis</code> (แม่)</td>
+                            </tr>
+                            <tr>
+                                <td class="font-mono text-blue-700 font-bold">snomed_code</td>
+                                <td>String</td>
+                                <td>รหัส Concept ID (e.g., 709044004)</td>
+                            </tr>
+                            <tr>
+                                <td class="font-mono text-blue-700 font-bold">clinical_status</td>
+                                <td>String</td>
+                                <td>active, resolved, etc.</td>
+                            </tr>
+                             <tr>
+                                <td class="font-mono text-blue-700 font-bold">verif_status</td>
+                                <td>String</td>
+                                <td>provisional, confirmed, refuted</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h4 class="font-bold text-gray-800 mb-2">ตัวอย่าง SQL สำหรับดึงข้อมูลแบบ Tree View</h4>
+<pre>
+<span class="text-purple-400">SELECT</span> 
+    parent.display_name <span class="text-purple-400">AS</span> Diagnosis,
+    parent.verif_status,
+    <span class="text-blue-400">COUNT</span>(child.id) <span class="text-purple-400">AS</span> Symptom_Count,
+    <span class="text-blue-400">JSON_AGG</span>(child.display_name) <span class="text-purple-400">AS</span> Symptoms
+<span class="text-purple-400">FROM</span> conditions <span class="text-purple-400">AS</span> parent
+<span class="text-purple-400">LEFT JOIN</span> conditions <span class="text-purple-400">AS</span> child <span class="text-purple-400">ON</span> child.parent_condition_id = parent.id
+<span class="text-purple-400">WHERE</span> parent.category = <span class="text-green-400">'encounter-diagnosis'</span>
+<span class="text-purple-400">GROUP BY</span> parent.id;
+</pre>
+            </section>
+
+        </div>
+
+        <footer class="mt-20 border-t border-gray-200 py-8 text-center text-sm text-gray-400">
+            <p>POMR (Problem-Oriented Medical Record) Guideline (HL7/SNOMED/AAHA Compliant)</p>
+            <p class="mt-1">Created by Nipon W. (anmkr57)</p>
+        </footer>
+
+    </main>
+
+</body>
+</html>

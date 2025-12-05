@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Full Vet HIS - Problem List Interactive</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Prompt', sans-serif; background-color: #f3f4f6; }
+        
+        /* Tooltip Logic */
+        .tooltip-box {
+            transition: opacity 0.2s, transform 0.2s;
+            transform: translateY(10px) translateX(-50%);
+            opacity: 0;
+            pointer-events: none;
+            z-index: 50;
+        }
+        .group:hover .tooltip-box {
+            opacity: 1;
+            transform: translateY(0) translateX(-50%);
+        }
+        
+        /* Smooth Fade In for new items */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen pb-20">
+
+    <header class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+            <h1 class="text-xl font-bold text-gray-800 flex items-center">
+                <i class="fa-solid fa-laptop-medical text-blue-600 mr-2"></i> 
+                Vet HIS: Problem List & Diagnosis Module
+            </h1>
+            <div class="text-sm text-gray-500 hidden md:block">
+                Interactive Demo: ลองกรอกข้อมูลด้านซ้าย แล้วดูผลลัพธ์ด้านขวา
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 py-6 grid grid-cols-12 gap-6">
+
+        <div class="col-span-12 lg:col-span-4 space-y-4">
+            
+            <div class="bg-white p-5 rounded-xl shadow-lg border border-blue-100 sticky top-24">
+                <div class="border-b pb-3 mb-4 flex justify-between items-center">
+                    <h2 class="font-bold text-gray-800"><i class="fa-solid fa-pen-to-square mr-2"></i>บันทึกข้อมูล (Entry)</h2>
+                    <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">HL7 FHIR Resource</span>
+                </div>
+
+                <form id="diagnosisForm" class="space-y-4" onsubmit="event.preventDefault(); addDiagnosis();">
+                    
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Diagnosis / Problem (SNOMED CT)</label>
+                        <div class="relative group">
+                            <input type="text" id="inputName" class="block w-full text-sm border-gray-300 rounded-md border p-2 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500" placeholder="e.g. Vomiting, Parvovirus..." required>
+                            <div class="absolute right-2 top-2 text-xs text-gray-400">🔍</div>
+                            <div class="tooltip-box absolute bottom-full left-1/2 mb-2 w-48 bg-gray-800 text-white text-xs rounded p-2 text-center">
+                                Mapping: <code>Condition.code</code>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Clinical Status (ความเป็นไปของโรค)</label>
+                        <div class="relative group">
+                            <select id="inputClinical" class="block w-full text-sm border-gray-300 rounded-md shadow-sm border p-2 bg-white">
+                                <option value="active">Active (เป็นอยู่/รักษาอยู่)</option>
+                                <option value="recurrence">Recurrence (กลับมาเป็นซ้ำ)</option>
+                                <option value="relapse">Relapse (กำเริบ)</option>
+                                <option value="inactive">Inactive (ไม่ active แล้ว)</option>
+                                <option value="remission">Remission (โรคสงบ)</option>
+                                <option value="resolved">Resolved (หายแล้ว)</option>
+                            </select>
+                             <div class="tooltip-box absolute bottom-full left-1/2 mb-2 w-56 bg-gray-800 text-white text-xs rounded p-2 text-center">
+                                Mapping: <code>Condition.clinicalStatus</code>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Verification Status (ความมั่นใจ)</label>
+                        <div class="relative group">
+                            <select id="inputVerification" class="block w-full text-sm border-gray-300 rounded-md shadow-sm border p-2 bg-white">
+                                <option value="provisional">Provisional (วินิจฉัยเบื้องต้น/สงสัย)</option>
+                                <option value="differential">Differential (แยกโรค)</option>
+                                <option value="confirmed">Confirmed (ยืนยันแล้ว)</option>
+                                <option value="refuted">Refuted (ปฏิเสธ/ไม่ใช่โรคนี้)</option>
+                                <option value="entered-in-error">Entered-in-error (ลงผิด)</option>
+                                <option value="unconfirmed">Unconfirmed (ไม่ยืนยัน)</option>
+                            </select>
+                            <div class="tooltip-box absolute bottom-full left-1/2 mb-2 w-56 bg-gray-800 text-white text-xs rounded p-2 text-center">
+                                Mapping: <code>Condition.verificationStatus</code>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Severity (ความรุนแรง)</label>
+                        <select id="inputSeverity" class="block w-full text-sm border-gray-300 rounded-md shadow-sm border p-2 bg-white">
+                            <option value="">- ไม่ระบุ -</option>
+                            <option value="mild">Mild (เล็กน้อย)</option>
+                            <option value="moderate">Moderate (ปานกลาง)</option>
+                            <option value="severe">Severe (รุนแรง)</option>
+                        </select>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Onset Date (เริ่มเป็น)</label>
+                            <input type="date" id="inputOnset" class="block w-full text-sm border-gray-300 rounded-md border p-1.5">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Abatement (วันที่หาย)</label>
+                            <input type="date" id="inputAbatement" class="block w-full text-sm border-gray-300 rounded-md border p-1.5" disabled>
+                            <p class="text-[10px] text-gray-400 mt-1">*Auto enable เมื่อเลือก Resolved</p>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Note (บันทึกเพิ่มเติม)</label>
+                        <textarea id="inputNote" rows="2" class="block w-full text-sm border-gray-300 rounded-md border p-2" placeholder="รายละเอียด เช่น Lab result, Owner complain..."></textarea>
+                    </div>
+
+                    <button type="submit" class="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 focus:outline-none transition transform hover:scale-[1.02]">
+                        <i class="fa-solid fa-plus mr-2"></i> เพิ่มรายการ (Add)
+                    </button>
+                </form>
+
+                <div class="mt-6 bg-gray-900 rounded-lg p-3 overflow-hidden">
+                    <div class="text-[10px] uppercase text-gray-500 font-bold mb-1">Live JSON Construction</div>
+                    <pre id="jsonPreview" class="text-[10px] font-mono text-green-400 whitespace-pre-wrap">Waiting for input...</pre>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-span-12 lg:col-span-8 space-y-6">
+
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 min-h-[200px]">
+                <div class="bg-blue-50 px-6 py-4 border-b border-blue-100 flex justify-between items-center rounded-t-xl">
+                    <h2 class="text-blue-800 font-bold flex items-center">
+                        <i class="fa-solid fa-heart-pulse mr-2"></i> Active Problems List
+                    </h2>
+                    <span id="activeCount" class="bg-blue-200 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded-full">0 รายการ</span>
+                </div>
+                
+                <div id="activeList" class="divide-y divide-gray-100 p-2">
+                    <div class="text-center py-10 text-gray-400 text-sm italic empty-state">ยังไม่มีรายการปัญหาที่กำลังรักษา</div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 opacity-90">
+                <div class="bg-gray-100 px-6 py-3 border-b border-gray-200 flex justify-between items-center rounded-t-xl">
+                    <h2 class="text-gray-600 font-bold flex items-center text-sm">
+                        <i class="fa-solid fa-box-archive mr-2"></i> History / Inactive / Refuted
+                    </h2>
+                    <span id="historyCount" class="bg-gray-200 text-gray-600 text-xs font-semibold px-2.5 py-0.5 rounded-full">0 รายการ</span>
+                </div>
+                
+                <div id="historyList" class="divide-y divide-gray-100 p-2">
+                     <div class="text-center py-6 text-gray-400 text-xs italic empty-state">ไม่มีประวัติ</div>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <script>
+        // Store data
+        let problemList = [];
+
+        // Mockup Initial Data
+        window.onload = function() {
+            // Set default date to today
+            document.getElementById('inputOnset').valueAsDate = new Date();
+            
+            // Auto-fill JSON preview
+            updateJsonPreview();
+        };
+
+        // Listeners for Interactive JSON Preview & Logic
+        const inputs = document.querySelectorAll('#diagnosisForm input, #diagnosisForm select, #diagnosisForm textarea');
+        inputs.forEach(input => {
+            input.addEventListener('input', updateJsonPreview);
+            input.addEventListener('change', handleLogic);
+        });
+
+        function handleLogic() {
+            const clinical = document.getElementById('inputClinical').value;
+            const abatement = document.getElementById('inputAbatement');
+            
+            // Auto Enable/Disable Abatement Date
+            if (clinical === 'resolved' || clinical === 'inactive' || clinical === 'remission') {
+                abatement.disabled = false;
+                if (!abatement.value) abatement.valueAsDate = new Date();
+            } else {
+                abatement.disabled = true;
+                abatement.value = '';
+            }
+            updateJsonPreview();
+        }
+
+        function updateJsonPreview() {
+            const data = getFormData();
+            document.getElementById('jsonPreview').textContent = JSON.stringify(data, null, 2);
+        }
+
+        function getFormData() {
+            return {
+                resourceType: "Condition",
+                clinicalStatus: { code: document.getElementById('inputClinical').value },
+                verificationStatus: { code: document.getElementById('inputVerification').value },
+                category: [{ code: "problem-list-item" }],
+                severity: { code: document.getElementById('inputSeverity').value },
+                code: { text: document.getElementById('inputName').value },
+                onsetDateTime: document.getElementById('inputOnset').value,
+                abatementDateTime: document.getElementById('inputAbatement').value,
+                note: [{ text: document.getElementById('inputNote').value }]
+            };
+        }
+
+        function addDiagnosis() {
+            const data = getFormData();
+            
+            // Validate
+            if (!data.code.text) return;
+
+            // Generate Fake ID
+            data.id = 'cond-' + Date.now();
+            
+            // Add to Array
+            problemList.unshift(data); // Add to top
+            
+            // Render
+            renderList();
+            
+            // Reset Form (Optional: keep dates)
+            document.getElementById('inputName').value = '';
+            document.getElementById('inputNote').value = '';
+            document.getElementById('inputName').focus();
+            updateJsonPreview();
+        }
+
+        function renderList() {
+            const activeContainer = document.getElementById('activeList');
+            const historyContainer = document.getElementById('historyList');
+            
+            activeContainer.innerHTML = '';
+            historyContainer.innerHTML = '';
+
+            let activeCount = 0;
+            let historyCount = 0;
+
+            problemList.forEach(item => {
+                const clinical = item.clinicalStatus.code;
+                const verification = item.verificationStatus.code;
+                
+                // Logic to decide where to put the item
+                // IF Refuted OR Entered-in-error OR Resolved/Inactive -> History Panel
+                const isHistory = (verification === 'refuted' || verification === 'entered-in-error' || clinical === 'resolved' || clinical === 'inactive');
+                
+                const html = createItemHTML(item);
+                
+                if (isHistory) {
+                    historyContainer.innerHTML += html;
+                    historyCount++;
+                } else {
+                    activeContainer.innerHTML += html;
+                    activeCount++;
+                }
+            });
+
+            // Empty States
+            if (activeCount === 0) activeContainer.innerHTML = '<div class="text-center py-10 text-gray-400 text-sm italic">ยังไม่มีรายการปัญหาที่กำลังรักษา</div>';
+            if (historyCount === 0) historyContainer.innerHTML = '<div class="text-center py-6 text-gray-400 text-xs italic">ไม่มีประวัติ</div>';
+
+            // Update Counters
+            document.getElementById('activeCount').innerText = activeCount + " รายการ";
+            document.getElementById('historyCount').innerText = historyCount + " รายการ";
+        }
+
+        function createItemHTML(item) {
+            const clinical = item.clinicalStatus.code;
+            const verification = item.verificationStatus.code;
+            const severity = item.severity.code;
+            const name = item.code.text;
+            const date = item.onsetDateTime;
+            
+            // Badge Logic
+            let verifBadge = '';
+            let styleClass = '';
+            
+            if (verification === 'confirmed') {
+                verifBadge = `<span class="bg-indigo-100 text-indigo-800 text-[10px] px-2 py-0.5 rounded border border-indigo-200 font-bold">Confirmed</span>`;
+            } else if (verification === 'provisional') {
+                verifBadge = `<span class="bg-yellow-100 text-yellow-800 text-[10px] px-2 py-0.5 rounded border border-yellow-200 font-bold"><i class="fa-solid fa-question mr-1"></i>Provisional</span>`;
+                styleClass = "border-l-4 border-yellow-400 bg-yellow-50";
+            } else if (verification === 'differential') {
+                 verifBadge = `<span class="bg-orange-100 text-orange-800 text-[10px] px-2 py-0.5 rounded border border-orange-200 font-bold">Differential</span>`;
+                 styleClass = "border-l-4 border-orange-300 bg-orange-50";
+            } else if (verification === 'refuted') {
+                verifBadge = `<span class="bg-gray-200 text-gray-600 text-[10px] px-2 py-0.5 rounded border border-gray-300 font-bold line-through">Refuted</span>`;
+                styleClass = "opacity-60 bg-gray-50";
+            }
+
+            // Severity Display
+            let severityText = severity ? `<span class="text-[10px] text-gray-500 border border-gray-200 px-1 rounded ml-2">Severity: ${severity}</span>` : '';
+
+            // Note Display
+            let noteText = item.note[0].text ? `<p class="text-xs text-gray-500 mt-1 italic"><i class="fa-regular fa-note-sticky mr-1"></i>${item.note[0].text}</p>` : '';
+
+            return `
+            <div class="p-4 hover:bg-gray-50 transition duration-150 animate-fade-in ${styleClass}">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <div class="flex items-center flex-wrap gap-2 mb-1">
+                            <h3 class="text-sm font-bold text-gray-800 ${verification === 'refuted' ? 'line-through' : ''}">${name}</h3>
+                            ${verifBadge}
+                            ${severityText}
+                        </div>
+                        <div class="text-xs text-gray-500">
+                             <span class="mr-3"><i class="fa-solid fa-circle text-[8px] mr-1 ${clinical === 'active' ? 'text-red-500' : 'text-gray-400'}"></i>Status: <span class="uppercase font-semibold">${clinical}</span></span>
+                             <span><i class="fa-regular fa-calendar mr-1"></i>Onset: ${date || 'N/A'}</span>
+                        </div>
+                        ${noteText}
+                    </div>
+                    <button class="text-gray-300 hover:text-red-500 text-xs"><i class="fa-solid fa-trash"></i></button>
+                </div>
+            </div>
+            `;
+        }
+    </script>
+</body>
+</html>
