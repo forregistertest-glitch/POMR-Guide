@@ -22,20 +22,24 @@
 
         /* Table Styling */
         table { border-collapse: separate; border-spacing: 0; width: 100%; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; }
-        th { background-color: #f9fafb; color: #374151; font-weight: 600; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; padding: 12px 16px; border-bottom: 1px solid #e5e7eb; }
+        th { background-color: #f9fafb; color: #374151; font-weight: 600; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; padding: 12px 16px; border-bottom: 1px solid #e5e7eb; text-align: left; }
         td { padding: 12px 16px; border-bottom: 1px solid #e5e7eb; vertical-align: top; }
         tr:last-child td { border-bottom: none; }
         tr:hover { background-color: #f9fafb; }
 
         /* Wireframe Box */
         .wireframe-box { font-family: 'Courier New', monospace; white-space: pre; background: #ffffff; border: 2px solid #000; padding: 20px; color: #000; line-height: 1.2; overflow-x: auto; box-shadow: 4px 4px 0px rgba(0,0,0,0.1); }
+        
+        /* Badges */
+        .badge-disorder { background-color: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; padding: 2px 8px; border-radius: 9999px; font-size: 0.75rem; font-weight: bold; text-transform: uppercase; }
+        .badge-finding { background-color: #fef9c3; color: #854d0e; border: 1px solid #fde047; padding: 2px 8px; border-radius: 9999px; font-size: 0.75rem; font-weight: bold; text-transform: uppercase; }
     </style>
 </head>
 <body class="flex h-screen overflow-hidden">
 
     <aside class="w-72 bg-white border-r border-gray-200 hidden md:flex flex-col overflow-y-auto z-10 shadow-sm">
         <div class="p-6 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-white">
-            <h1 class="text-xl font-bold text-blue-800"><i class="fa-solid fa-book-medical mr-2"></i>POMR (Problem-Oriented Medical Record) Guide</h1>
+            <h1 class="text-xl font-bold text-blue-800"><i class="fa-solid fa-book-medical mr-2"></i>POMR Guide</h1>
             <p class="text-xs text-gray-500 mt-1">Version 1.0 (Full Spec)</p>
         </div>
         <nav class="flex-1 p-4">
@@ -144,6 +148,38 @@
                             </tr>
                         </tbody>
                     </table>
+                </div>
+
+                <div class="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-5">
+                    <h3 class="font-bold text-yellow-800 mb-3 border-b border-yellow-200 pb-2">
+                        <i class="fa-solid fa-microchip mr-2"></i> Logic: Disorder vs Finding
+                    </h3>
+                    <p class="text-sm text-yellow-900 mb-4">
+                        ระบบควรอ่านค่า <strong>Semantic Tag</strong> (ในวงเล็บของ SNOMED) เพื่อกำหนด Category ให้หมออัตโนมัติ:
+                    </p>
+                    <div class="bg-white rounded-lg border border-yellow-200 overflow-hidden">
+                        <table>
+                            <thead class="bg-yellow-100">
+                                <tr>
+                                    <th class="text-yellow-800">Semantic Tag</th>
+                                    <th class="text-yellow-800">ความหมาย</th>
+                                    <th class="text-yellow-800">Auto-Map Category</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="font-mono font-bold text-blue-600">(disorder)</td>
+                                    <td>โรค / ความผิดปกติ</td>
+                                    <td><span class="badge-disorder">Encounter-Diagnosis</span> (Group Parent)</td>
+                                </tr>
+                                <tr>
+                                    <td class="font-mono font-bold text-yellow-600">(finding)</td>
+                                    <td>อาการที่ตรวจพบ</td>
+                                    <td><span class="badge-finding">Problem-List-Item</span> (Item Child)</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </section>
 
